@@ -1,0 +1,14 @@
+[package]
+name = "email-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.79"
+config = "0.14.0"
+lettre = { version = "0.11.4", features = ["tokio1", "tokio1-native-tls", "builder", "pool"] }
+serde = { version = "1.0.196", features = ["derive"] }
+tokio = { version = "1.36.0", features = ["full"] }
+url = "2.5.0"

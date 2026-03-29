@@ -1,0 +1,7 @@
+/target
+/secrets/**
+!/secrets/prod.ini.example
+
+# IDE
+.vscode
+.idea

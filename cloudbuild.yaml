@@ -1,0 +1,47 @@
+steps:
+  - name: gcr.io/cloud-builders/gcloud
+    entrypoint: 'bash'
+    args: ['-c', 'gcloud secrets versions access latest --secret oracle-sanjose-arm-docker-ca > ca.pem && gcloud secrets versions access latest --secret oracle-sanjose-arm-docker-cert > cert.pem && gcloud secrets versions access latest --secret oracle-sanjose-arm-docker-key > key.pem']
+  - name: 'docker'
+    args: ['context', 'create', '--docker', 'host=tcp://192.9.137.182:2376,ca=ca.pem,cert=cert.pem,key=key.pem', 'oracle-sanjose-arm']
+    id: 'create-context'
+  - name: 'docker'
+    env:
+    - 'DOCKER_API_VERSION=1.41'
+    args: ['buildx', 'create', '--name', 'multi-builder', '--use', 'oracle-sanjose-arm']
+    id: 'init-builder-remote'
+  - name: 'docker'
+    env:
+    - 'DOCKER_API_VERSION=1.41'
+    args: ['buildx', 'create', '--name', 'multi-builder', '--append', 'default']
+    id: 'append-builder-local'
+  - name: 'docker'
+    env:
+    - 'DOCKER_API_VERSION=1.41'
+    args:
+    - 'buildx'
+    - 'build'
+    - '--platform=$_DOCKER_BUILDX_PLATFORMS'
+    - '--tag=us-docker.pkg.dev/$PROJECT_ID/email/$REPO_NAME:$BRANCH_NAME'
+    - '--build-arg=${_PREBUILT_SERVER_TAG}'
+    - '--file=$_DOCKER_FILE'
+    - '--push'
+    - '.'
+    id: 'build-multi-architecture-container-image'
+  - name: 'docker'
+    env:
+    - 'DOCKER_API_VERSION=1.41'
+    args: ['buildx', 'rm', 'multi-builder']
+    id: 'clean-up-builder'
+  - name: gcr.io/cloud-builders/gcloud
+    entrypoint: 'bash'
+    args: ['-c', 'rm -rf ca.pem cert.pem key.pem']
+options:
+  env:
+    - 'DOCKER_CLI_EXPERIMENTAL=enabled'
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64' # 'linux/amd64,linux/arm64' - Note slowness
+  _DOCKER_FILE: 'Dockerfile'
+  _PREBUILT_SERVER_TAG: 'PREBUILT_SERVER_TAG=main'
+
